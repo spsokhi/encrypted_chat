@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+<body>
+    <div class="background">
+        <div class="chat-container">
+            <div class="chat-box-container">
+                <h1 class="title">Welcome, {{ username }}!</h1>
+                <div id="chat-box" class="chat-box">
+                    <!-- Messages will be displayed here -->
+                </div>
+                <form id="chat-form" class="form chat-form">
+                    <input type="text" id="message" placeholder="Type your message here..." required>
+                    <button type="submit" class="btn btn-primary">Send</button>
+                </form>
+            </div>
+            <div class="user-list-container">
+                <h3 class="subtitle">Active Users</h3>
+                <ul id="user-list" class="user-list">
+                    <!-- User list will be populated here -->
+                </ul>
+                <a href="{{ url_for('logout') }}" class="logout-button">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+
+        // Get the encryption key passed from the server
+        const encryptionKey = CryptoJS.enc.Base64.parse("{{ encryption_key }}");
+
+        // Function to encrypt message using AES
+        function encryptMessage(message) {
+            const iv = CryptoJS.lib.WordArray.random(16); // Random IV for each message
+            const encrypted = CryptoJS.AES.encrypt(message, encryptionKey, {
+                iv: iv,
+                mode: CryptoJS.mode.CFB,
+                padding: CryptoJS.pad.NoPadding
+            });
+            return iv.concat(encrypted.ciphertext).toString(CryptoJS.enc.Base64);
+        }
+
+        // Event listener for sending messages
+        document.getElementById('chat-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const messageInput = document.getElementById('message');
+            const message = messageInput.value;
+            if (message) {
+                try {
+                    // Encrypt the message before sending
+                    const encryptedMessage = encryptMessage(message);
+                    socket.emit('send_message', { encrypted_message: encryptedMessage });
+                    messageInput.value = '';
+                } catch (error) {
+                    console.error('Encryption error:', error);
+                }
+            }
+        });
+
+        // Listen for incoming messages
+        socket.on('receive_message', function(data) {
+            const chatBox = document.getElementById('chat-box');
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+            messageElement.textContent = `${data.username}: ${data.message}`;
+            chatBox.appendChild(messageElement);
+            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to the bottom
+        });
+
+        // Update the user list
+        socket.on('update_user_list', function(users) {
+            const userList = document.getElementById('user-list');
+            userList.innerHTML = ''; // Clear existing list
+            users.forEach(function(user) {
+                const userElement = document.createElement('li');
+                userElement.textContent = user;
+                userList.appendChild(userElement);
+            });
+        });
+
+        // Notify server when user joins
+        socket.emit('user_joined', { username: "{{ username }}" });
+
+        // Listen for error messages
+        socket.on('error', function(data) {
+            alert(data.message);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="background">
+        <div class="container admin-container">
+            <h1 class="title">Admin Panel</h1>
+            <div class="user-management">
+                <h2 class="subtitle">Add User</h2>
+                <form method="POST" action="{{ url_for('admin_page') }}" class="form admin-form">
+                    <div class="form-group">
+                        <label for="new_username">Username</label>
+                        <input type="text" id="new_username" name="new_username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_password">Password</label>
+                        <input type="password" id="new_password" name="new_password" required>
+                    </div>
+                    <button type="submit" name="add_user" class="btn btn-primary">Add User</button>
+                </form>
+
+                <h2 class="subtitle">Remove User</h2>
+                <form method="POST" action="{{ url_for('admin_page') }}" class="form admin-form">
+                    <div class="form-group">
+                        <label for="remove_username">Username</label>
+                        <input type="text" id="remove_username" name="remove_username" required>
+                    </div>
+                    <button type="submit" name="remove_user" class="btn btn-danger">Remove User</button>
+                </form>
+            </div>
+            <h2 class="subtitle">Current Users</h2>
+            <ul class="user-list">
+                {% for username in users %}
+                    <li>{{ username }}</li>
+                {% endfor %}
+            </ul>
+
+            <a href="{{ url_for('logout') }}" class="logout-button">Logout</a>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flashes">
+                {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+            {% endwith %}
+        </div>
+    </div>
+</body>
+</html>
